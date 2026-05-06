@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>HostelOS — Management System</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:       #0a0a0f;
+    --surface:  #111118;
+    --card:     #16161f;
+    --border:   #1f1f2e;
+    --accent:   #7c6af7;
+    --accent2:  #f76a8c;
+    --accent3:  #6af7c8;
+    --text:     #e8e6f0;
+    --muted:    #6b6880;
+    --danger:   #f76a6a;
+    --success:  #6af7a0;
+    --warning:  #f7c46a;
+    --radius:   12px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Mono', monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    overflow-x: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width: 220px;
+    min-height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 28px 0;
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    z-index: 100;
+  }
+  .logo {
+    padding: 0 24px 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .logo-sub { font-size: 0.62rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+
+  nav { padding: 16px 12px; flex: 1; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 8px;
+    cursor: pointer; font-size: 0.8rem;
+    color: var(--muted); transition: all 0.2s;
+    margin-bottom: 2px; letter-spacing: 0.3px;
+    border: 1px solid transparent;
+  }
+  .nav-item:hover { color: var(--text); background: var(--card); }
+  .nav-item.active {
+    color: var(--accent);
+    background: rgba(124,106,247,0.1);
+    border-color: rgba(124,106,247,0.2);
+  }
+  .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+  .nav-label { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 0.78rem; }
+
+  .sidebar-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* ── MAIN ── */
+  #main {
+    margin-left: 220px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 18px 36px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .page-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.3rem; font-weight: 800;
+    letter-spacing: -0.3px;
+  }
+  .header-right { display: flex; gap: 10px; align-items: center; }
+
+  .btn {
+    padding: 8px 18px; border-radius: 8px; border: none;
+    cursor: pointer; font-family: 'Syne', sans-serif;
+    font-weight: 600; font-size: 0.78rem; transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .btn-primary {
+    background: var(--accent); color: #fff;
+  }
+  .btn-primary:hover { background: #6a58e0; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,106,247,0.4); }
+  .btn-ghost {
+    background: transparent; color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+  .btn-danger { background: rgba(247,106,106,0.15); color: var(--danger); border: 1px solid rgba(247,106,106,0.3); }
+  .btn-danger:hover { background: rgba(247,106,106,0.25); }
+  .btn-success { background: rgba(106,247,160,0.15); color: var(--success); border: 1px solid rgba(106,247,160,0.3); }
+  .btn-sm { padding: 5px 10px; font-size: 0.7rem; }
+
+  #content { padding: 32px 36px; flex: 1; }
+
+  /* ── DASHBOARD STATS ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 16px; margin-bottom: 32px;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    position: relative; overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: var(--accent); }
+  .stat-card::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background: var(--accent-bar, var(--accent));
+  }
+  .stat-label { font-size: 0.65rem; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; }
+  .stat-value { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; line-height: 1; }
+  .stat-icon { position: absolute; right: 16px; top: 16px; font-size: 1.4rem; opacity: 0.15; }
+
+  /* ── TABLE ── */
+  .table-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .table-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .table-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.9rem; }
+  .search-input {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); font-family: 'DM Mono', monospace;
+    padding: 7px 14px; border-radius: 7px; font-size: 0.75rem;
+    outline: none; width: 200px; transition: border-color 0.2s;
+  }
+  .search-input:focus { border-color: var(--accent); }
+
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    padding: 11px 16px; text-align: left;
+    font-size: 0.65rem; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--muted);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 12px 16px; font-size: 0.78rem;
+    border-bottom: 1px solid rgba(31,31,46,0.6);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(124,106,247,0.04); }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-block; padding: 3px 9px;
+    border-radius: 20px; font-size: 0.65rem;
+    font-family: 'Syne', sans-serif; font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .badge-open { background: rgba(247,106,106,0.15); color: var(--danger); }
+  .badge-progress { background: rgba(247,196,106,0.15); color: var(--warning); }
+  .badge-resolved { background: rgba(106,247,160,0.15); color: var(--success); }
+  .badge-paid { background: rgba(106,247,160,0.15); color: var(--success); }
+  .badge-pending { background: rgba(247,196,106,0.15); color: var(--warning); }
+  .badge-male { background: rgba(124,106,247,0.15); color: var(--accent); }
+  .badge-female { background: rgba(247,106,140,0.15); color: var(--accent2); }
+  .badge-other { background: rgba(106,247,200,0.15); color: var(--accent3); }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap { display: flex; align-items: center; gap: 8px; }
+  .progress-bar-bg {
+    flex: 1; height: 5px; background: var(--border);
+    border-radius: 3px; overflow: hidden; max-width: 80px;
+  }
+  .progress-bar-fill {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.5s ease;
+  }
+  .progress-text { font-size: 0.7rem; color: var(--muted); white-space: nowrap; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+    z-index: 200; display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; width: 480px; max-width: 95vw;
+    padding: 28px; transform: translateY(12px) scale(0.98);
+    transition: transform 0.2s;
+  }
+  .modal-overlay.open .modal { transform: translateY(0) scale(1); }
+  .modal-title {
+    font-family: 'Syne', sans-serif; font-weight: 800;
+    font-size: 1.1rem; margin-bottom: 20px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-close { cursor: pointer; color: var(--muted); font-size: 1.2rem; }
+  .modal-close:hover { color: var(--text); }
+
+  .form-group { margin-bottom: 14px; }
+  .form-label { display: block; font-size: 0.68rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+  .form-input, .form-select, .form-textarea {
+    width: 100%; background: var(--surface);
+    border: 1px solid var(--border); color: var(--text);
+    font-family: 'DM Mono', monospace; font-size: 0.8rem;
+    padding: 10px 14px; border-radius: 8px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+  .form-select { appearance: none; cursor: pointer; }
+  .form-textarea { resize: vertical; min-height: 80px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+  /* ── TOAST ── */
+  #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: var(--card); border: 1px solid var(--border);
+    padding: 12px 18px; border-radius: 10px;
+    font-size: 0.78rem; display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    animation: slideIn 0.3s ease;
+    border-left: 3px solid var(--accent);
+  }
+  .toast.error { border-left-color: var(--danger); }
+  .toast.success { border-left-color: var(--success); }
+  @keyframes slideIn { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform: translateX(0); } }
+
+  /* ── LOADING ── */
+  .loading { text-align: center; padding: 40px; color: var(--muted); font-size: 0.8rem; }
+  .empty { text-align: center; padding: 48px; color: var(--muted); }
+  .empty-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.4; }
+  .empty-text { font-family: 'Syne', sans-serif; font-size: 0.85rem; }
+
+  /* ── SECTION TABS ── */
+  .section-tabs { display: flex; gap: 6px; margin-bottom: 24px; }
+  .section-tab {
+    padding: 7px 14px; border-radius: 7px;
+    font-family: 'Syne', sans-serif; font-weight: 600;
+    font-size: 0.75rem; cursor: pointer;
+    border: 1px solid var(--border); color: var(--muted);
+    background: transparent; transition: all 0.2s;
+  }
+  .section-tab.active { background: rgba(124,106,247,0.1); color: var(--accent); border-color: rgba(124,106,247,0.3); }
+
+  /* ── OCCUPANCY CARD ── */
+  .occupancy-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.72rem;
+  }
+
+  /* dashboard grid */
+  .dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media(max-width: 900px) { .dash-grid { grid-template-columns: 1fr; } }
+
+  .mini-list-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; border-bottom: 1px solid rgba(31,31,46,0.6);
+    font-size: 0.76rem;
+  }
+  .mini-list-item:last-child { border-bottom: none; }
+  .mini-list-item-name { font-weight: 500; }
+  .mini-list-item-sub { font-size: 0.65rem; color: var(--muted); margin-top: 2px; }
+
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="logo">
+    <div class="logo-title">HostelOS</div>
+    <div class="logo-sub">Admin Console</div>
+  </div>
+  <nav>
+    <div class="nav-item active" data-page="dashboard">
+      <span class="nav-icon">⬡</span><span class="nav-label">Dashboard</span>
+    </div>
+    <div class="nav-item" data-page="students">
+      <span class="nav-icon">◈</span><span class="nav-label">Students</span>
+    </div>
+    <div class="nav-item" data-page="hostels">
+      <span class="nav-icon">▣</span><span class="nav-label">Hostels</span>
+    </div>
+    <div class="nav-item" data-page="rooms">
+      <span class="nav-icon">◫</span><span class="nav-label">Rooms</span>
+    </div>
+    <div class="nav-item" data-page="allocations">
+      <span class="nav-icon">◉</span><span class="nav-label">Allocations</span>
+    </div>
+    <div class="nav-item" data-page="fees">
+      <span class="nav-icon">◎</span><span class="nav-label">Fees</span>
+    </div>
+    <div class="nav-item" data-page="complaints">
+      <span class="nav-icon">◈</span><span class="nav-label">Complaints</span>
+    </div>
+  </nav>
+  <div class="sidebar-footer">DBMS PROJECT · v1.0</div>
+</aside>
+
+<!-- MAIN -->
+<div id="main">
+  <header>
+    <div class="page-title" id="page-title">Dashboard</div>
+    <div class="header-right">
+      <button class="btn btn-ghost" onclick="refreshPage()">↻ Refresh</button>
+      <button class="btn btn-primary" id="add-btn" onclick="openAddModal()" style="display:none">+ Add New</button>
+    </div>
+  </header>
+  <div id="content"><div class="loading">Loading…</div></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modal-title-text">Add</span>
+      <span class="modal-close" onclick="closeModal()">✕</span>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast-container"></div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const API = 'http://localhost:3001/api';
+
+let currentPage = 'dashboard';
+let allData = {}; // cache
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  try {
+    const r = await fetch(API + path, {
+      headers: { 'Content-Type': 'application/json' },
+      ...opts,
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Request failed');
+    return data;
+  } catch (e) {
+    toast(e.message, 'error');
+    throw e;
+  }
+}
+
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${type === 'success' ? '✓' : '✕'}</span><span>${msg}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function badge(val, map) {
+  const cls = map[val] || '';
+  return `<span class="badge ${cls}">${val}</span>`;
+}
+
+function genderBadge(g) {
+  const m = { Male: 'badge-male', Female: 'badge-female', Other: 'badge-other' };
+  return badge(g, m);
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function openModal(title, bodyHTML, onSubmit) {
+  document.getElementById('modal-title-text').textContent = title;
+  document.getElementById('modal-body').innerHTML = bodyHTML + `
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="modal-submit-btn" onclick="modalSubmit()">Save</button>
+    </div>`;
+  window._modalSubmit = onSubmit;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+async function modalSubmit() {
+  const btn = document.getElementById('modal-submit-btn');
+  btn.textContent = 'Saving…'; btn.disabled = true;
+  try { await window._modalSubmit(); closeModal(); refreshPage(); }
+  finally { btn.textContent = 'Save'; btn.disabled = false; }
+}
+
+function val(id) { return document.getElementById(id)?.value?.trim() || ''; }
+
+// ── NAV ───────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
+    el.classList.add('active');
+    currentPage = el.dataset.page;
+    document.getElementById('page-title').textContent = el.querySelector('.nav-label').textContent;
+    loadPage(currentPage);
+  });
+});
+
+function refreshPage() { loadPage(currentPage); }
+
+async function loadPage(page) {
+  const content = document.getElementById('content');
+  const addBtn = document.getElementById('add-btn');
+  content.innerHTML = '<div class="loading">Loading…</div>';
+  addBtn.style.display = 'none';
+
+  const pages = {
+    dashboard, students, hostels, rooms, allocations, fees, complaints
+  };
+  if (pages[page]) await pages[page]();
+}
+
+function openAddModal() {
+  const fns = { students: addStudentModal, hostels: addHostelModal, rooms: addRoomModal, allocations: addAllocationModal, fees: addFeeModal, complaints: addComplaintModal };
+  if (fns[currentPage]) fns[currentPage]();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+async function dashboard() {
+  const [stats, complaints, fees] = await Promise.all([
+    api('/stats'),
+    api('/complaints'),
+    api('/fees')
+  ]);
+
+  const occPct = stats.total_capacity > 0 ? Math.round((stats.total_occupied / stats.total_capacity) * 100) : 0;
+
+  document.getElementById('content').innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card" style="--accent-bar: var(--accent)">
+        <div class="stat-icon">◈</div>
+        <div class="stat-label">Total Students</div>
+        <div class="stat-value">${stats.total_students}</div>
+      </div>
+      <div class="stat-card" style="--accent-bar: var(--accent3)">
+        <div class="stat-icon">◉</div>
+        <div class="stat-label">Allocated</div>
+        <div class="stat-value">${stats.allocated}</div>
+      </div>
+      <div class="stat-card" style="--accent-bar: var(--accent2)">
+        <div class="stat-icon">◎</div>
+        <div class="stat-label">Unallocated</div>
+        <div class="stat-value">${stats.unallocated}</div>
+      </div>
+      <div class="stat-card" style="--accent-bar: var(--warning)">
+        <div class="stat-icon">◫</div>
+        <div class="stat-label">Total Rooms</div>
+        <div class="stat-value">${stats.total_rooms}</div>
+      </div>
+      <div class="stat-card" style="--accent-bar: var(--danger)">
+        <div class="stat-icon">◈</div>
+        <div class="stat-label">Open Complaints</div>
+        <div class="stat-value">${stats.open_complaints}</div>
+      </div>
+      <div class="stat-card" style="--accent-bar: var(--success)">
+        <div class="stat-icon">◎</div>
+        <div class="stat-label">Pending Fees</div>
+        <div class="stat-value">${stats.pending_fees}</div>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="table-wrap">
+        <div class="table-header">
+          <span class="table-title">Room Occupancy</span>
+          <span style="font-size:0.72rem;color:var(--muted)">${stats.total_occupied}/${stats.total_capacity} occupied</span>
+        </div>
+        <div style="padding:20px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:0.75rem">
+            <span style="color:var(--muted)">Overall Capacity</span>
+            <span>${occPct}%</span>
+          </div>
+          <div class="progress-bar-bg" style="max-width:100%;height:8px">
+            <div class="progress-bar-fill" style="width:${occPct}%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-header"><span class="table-title">Recent Complaints</span></div>
+        <div>
+          ${complaints.slice(0,5).map(c => `
+            <div class="mini-list-item">
+              <div>
+                <div class="mini-list-item-name">${c.student_name}</div>
+                <div class="mini-list-item-sub">${c.description.substring(0,50)}${c.description.length>50?'…':''}</div>
+              </div>
+              ${badge(c.status, { Open:'badge-open','In Progress':'badge-progress',Resolved:'badge-resolved' })}
+            </div>`).join('') || '<div class="empty"><div class="empty-text">No complaints</div></div>'}
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-header"><span class="table-title">Pending Fees</span></div>
+        <div>
+          ${fees.filter(f=>f.status==='Pending').slice(0,5).map(f => `
+            <div class="mini-list-item">
+              <div>
+                <div class="mini-list-item-name">${f.student_name}</div>
+                <div class="mini-list-item-sub">${f.roll_no}</div>
+              </div>
+              <span style="font-family:'Syne',sans-serif;font-weight:700;color:var(--warning)">₹${parseFloat(f.amount).toLocaleString()}</span>
+            </div>`).join('') || '<div class="empty"><div class="empty-text">All clear!</div></div>'}
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── STUDENTS ──────────────────────────────────────────────────────────────────
+async function students() {
+  document.getElementById('add-btn').style.display = '';
+  const data = await api('/students');
+  document.getElementById('content').innerHTML = `
+    <div class="table-wrap">
+      <div class="table-header">
+        <span class="table-title">Students <span style="color:var(--muted);font-weight:400">(${data.length})</span></span>
+        <input class="search-input" placeholder="Search students…" oninput="filterTable(this,'students-tbody')" />
+      </div>
+      <table>
+        <thead><tr>
+          <th>Roll No</th><th>Name</th><th>Email</th><th>Phone</th><th>Gender</th><th>Added</th><th></th>
+        </tr></thead>
+        <tbody id="students-tbody">
+          ${data.map(s => `<tr>
+            <td><code>${s.roll_no}</code></td>
+            <td>${s.name}</td>
+            <td style="color:var(--muted)">${s.email || '—'}</td>
+            <td style="color:var(--muted)">${s.phone || '—'}</td>
+            <td>${genderBadge(s.gender)}</td>
+            <td style="color:var(--muted)">${new Date(s.created_at).toLocaleDateString()}</td>
+            <td><button class="btn btn-danger btn-sm" onclick="deleteStudent(${s.student_id})">Delete</button></td>
+          </tr>`).join('') || '<tr><td colspan="7"><div class="empty"><div class="empty-icon">◈</div><div class="empty-text">No students yet</div></div></td></tr>'}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+async function deleteStudent(id) {
+  if (!confirm('Delete this student? This will also remove their allocation.')) return;
+  await api(`/students/${id}`, { method: 'DELETE' });
+  toast('Student deleted');
+  refreshPage();
+}
+
+function addStudentModal() {
+  openModal('Add Student', `
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Roll No</label><input id="f-roll" class="form-input" placeholder="CS2024001" /></div>
+      <div class="form-group"><label class="form-label">Full Name</label><input id="f-name" class="form-input" placeholder="Arjun Sharma" /></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Email</label><input id="f-email" class="form-input" type="email" placeholder="arjun@example.com" /></div>
+      <div class="form-group"><label class="form-label">Phone</label><input id="f-phone" class="form-input" placeholder="9876543210" /></div>
+    </div>
+    <div class="form-group"><label class="form-label">Gender</label>
+      <select id="f-gender" class="form-select"><option>Male</option><option>Female</option><option>Other</option></select>
+    </div>`, async () => {
+    await api('/students', { method:'POST', body:{ roll_no:val('f-roll'), name:val('f-name'), email:val('f-email'), phone:val('f-phone'), gender:val('f-gender') }});
+    toast('Student added!');
+  });
+}
+
+// ── HOSTELS ───────────────────────────────────────────────────────────────────
+async function hostels() {
+  document.getElementById('add-btn').style.display = '';
+  const data = await api('/hostels');
+  document.getElementById('content').innerHTML = `
+    <div class="table-wrap">
+      <div class="table-header">
+        <span class="table-title">Hostels <span style="color:var(--muted);font-weight:400">(${data.length})</span></span>
+      </div>
+      <table>
+        <thead><tr><th>ID</th><th>Hostel Name</th><th>Gender</th></tr></thead>
+        <tbody>
+          ${data.map(h => `<tr>
+            <td style="color:var(--muted)">#${h.hostel_id}</td>
+            <td>${h.name}</td>
+            <td>${genderBadge(h.gender)}</td>
+          </tr>`).join('') || '<tr><td colspan="3"><div class="empty"><div class="empty-icon">▣</div><div class="empty-text">No hostels yet</div></div></td></tr>'}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function addHostelModal() {
+  openModal('Add Hostel', `
+    <div class="form-group"><label class="form-label">Hostel Name</label><input id="f-hname" class="form-input" placeholder="Boys Hostel A" /></div>
+    <div class="form-group"><label class="form-label">Gender</label>
+      <select id="f-hgender" class="form-select"><option>Male</option><option>Female</option><option>Other</option></select>
+    </div>`, async () => {
+    await api('/hostels', { method:'POST', body:{ name:val('f-hname'), gender:val('f-hgender') }});
+    toast('Hostel added!');
+  });
+}
+
+// ── ROOMS ─────────────────────────────────────────────────────────────────────
+async function rooms() {
+  document.getElementById('add-btn').style.display = '';
+  const data = await api('/rooms');
+  document.getElementById('content').innerHTML = `
+    <div class="table-wrap">
+      <div class="table-header">
+        <span class="table-title">Rooms <span style="color:var(--muted);font-weight:400">(${data.length})</span></span>
+        <input class="search-input" placeholder="Search rooms…" oninput="filterTable(this,'rooms-tbody')" />
+      </div>
+      <table>
+        <thead><tr><th>Hostel</th><th>Room No</th><th>Capacity</th><th>Occupancy</th></tr></thead>
+        <tbody id="rooms-tbody">
+          ${data.map(r => {
+            const pct = Math.round((r.occupied_count/r.capacity)*100);
+            return `<tr>
+              <td>${r.hostel_name} ${genderBadge(r.hostel_gender)}</td>
+              <td><code>${r.room_number}</code></td>
+              <td>${r.capacity}</td>
+              <td>
+                <div class="progress-wrap">
+                  <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" style="width:${pct}%;background:${pct>=100?'var(--danger)':pct>70?'var(--warning)':'var(--accent)'}"></div>
+                  </div>
+                  <span class="progress-text">${r.occupied_count}/${r.capacity}</span>
+                </div>
+              </td>
+            </tr>`;
+          }).join('') || '<tr><td colspan="4"><div class="empty"><div class="empty-text">No rooms yet</div></div></td></tr>'}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+async function addRoomModal() {
+  const hostels = await api('/hostels');
+  openModal('Add Room', `
+    <div class="form-group"><label class="form-label">Hostel</label>
+      <select id="f-rhostel" class="form-select">
+        ${hostels.map(h=>`<option value="${h.hostel_id}">${h.name} (${h.gender})</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Room Number</label><input id="f-rno" class="form-input" placeholder="101" /></div>
+      <div class="form-group"><label class="form-label">Capacity</label><input id="f-rcap" class="form-input" type="number" min="1" placeholder="3" /></div>
+    </div>`, async () => {
+    await api('/rooms', { method:'POST', body:{ hostel_id:parseInt(val('f-rhostel')), room_number:val('f-rno'), capacity:parseInt(val('f-rcap')) }});
+    toast('Room added!');
+  });
+}
+
+// ── ALLOCATIONS ───────────────────────────────────────────────────────────────
+async function allocations() {
+  document.getElementById('add-btn').style.display = '';
+  const data = await api('/allocations');
+  document.getElementById('content').innerHTML = `
+    <div class="table-wrap">
+      <div class="table-header">
+        <span class="table-title">Allocations <span style="color:var(--muted);font-weight:400">(${data.length})</span></span>
+        <input class="search-input" placeholder="Search…" oninput="filterTable(this,'alloc-tbody')" />
+      </div>
+      <table>
+        <thead><tr><th>Student</th><th>Roll No</th><th>Hostel</th><th>Room</th><th>Date</th><th></th></tr></thead>
+        <tbody id="alloc-tbody">
+          ${data.map(a => `<tr>
+            <td>${a.student_name}</td>
+            <td><code>${a.roll_no}</code></td>
+            <td>${a.hostel_name}</td>
+            <td><code>${a.room_number}</code></td>
+            <td style="color:var(--muted)">${new Date(a.allocation_date).toLocaleDateString()}</td>
+            <td><button class="btn btn-danger btn-sm" onclick="deallocate(${a.allocation_id})">Deallocate</button></td>
+          </tr>`).join('') || '<tr><td colspan="6"><div class="empty"><div class="empty-icon">◉</div><div class="empty-text">No allocations yet</div></div></td></tr>'}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+async function deallocate(id) {
+  if (!confirm('Remove this room allocation?')) return;
+  await api(`/allocations/${id}`, { method:'DELETE' });
+  toast('Deallocated');
+  refreshPage();
+}
+
+async function addAllocationModal() {
+  const [students, rooms] = await Promise.all([api('/students'), api('/rooms')]);
+  openModal('Allocate Room', `
+    <div class="form-group"><label class="form-label">Student</label>
+      <select id="f-astudent" class="form-select">
+        ${students.map(s=>`<option value="${s.student_id}">${s.name} (${s.roll_no})</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Room</label>
+      <select id="f-aroom" class="form-select">
+        ${rooms.filter(r=>r.occupied_count<r.capacity).map(r=>`<option value="${r.room_id}">${r.hostel_name} — Room ${r.room_number} (${r.occupied_count}/${r.capacity})</option>`).join('')}
+      </select>
+    </div>`, async () => {
+    await api('/allocations', { method:'POST', body:{ student_id:parseInt(val('f-astudent')), room_id:parseInt(val('f-aroom')) }});
+    toast('Room allocated!');
+  });
+}
+
+// ── FEES ──────────────────────────────────────────────────────────────────────
+async function fees() {
+  document.getElementById('add-btn').style.display = '';
+  const [feesData, tabs] = [await api('/fees'), currentFeesTab || 'All'];
+  window.currentFeesTab = window.currentFeesTab || 'All';
+
+  const filtered = feesData.filter(f => tabs === 'All' || f.status === tabs);
+  document.getElementById('content').innerHTML = `
+    <div class="section-tabs">
+      ${['All','Pending','Paid'].map(t=>`<button class="section-tab${tabs===t?' active':''}" onclick="setFeesTab('${t}')">${t}</button>`).join('')}
+    </div>
+    <div class="table-wrap">
+      <div class="table-header">
+        <span class="table-title">Fees <span style="color:var(--muted);font-weight:400">(${filtered.length})</span></span>
+      </div>
+      <table>
+        <thead><tr><th>Student</th><th>Roll No</th><th>Amount</th><th>Payment Date</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          ${filtered.map(f => `<tr>
+            <td>${f.student_name}</td>
+            <td><code>${f.roll_no}</code></td>
+            <td style="font-family:'Syne',sans-serif;font-weight:700">₹${parseFloat(f.amount).toLocaleString()}</td>
+            <td style="color:var(--muted)">${f.payment_date ? new Date(f.payment_date).toLocaleDateString() : '—'}</td>
+            <td>${badge(f.status, { Paid:'badge-paid', Pending:'badge-pending' })}</td>
+            <td>${f.status==='Pending' ? `<button class="btn btn-success btn-sm" onclick="markPaid(${f.fee_id})">Mark Paid</button>` : ''}</td>
+          </tr>`).join('') || '<tr><td colspan="6"><div class="empty"><div class="empty-text">No records</div></div></td></tr>'}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function setFeesTab(t) { window.currentFeesTab = t; fees(); }
+
+async function markPaid(id) {
+  await api(`/fees/${id}`, { method:'PATCH', body:{ status:'Paid' }});
+  toast('Marked as paid!');
+  refreshPage();
+}
+
+async function addFeeModal() {
+  const students = await api('/students');
+  openModal('Add Fee Record', `
+    <div class="form-group"><label class="form-label">Student</label>
+      <select id="f-fstudent" class="form-select">
+        ${students.map(s=>`<option value="${s.student_id}">${s.name} (${s.roll_no})</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Amount (₹)</label><input id="f-famount" class="form-input" type="number" placeholder="5000" /></div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select id="f-fstatus" class="form-select"><option>Pending</option><option>Paid</option></select>
+      </div>
+    </div>`, async () => {
+    await api('/fees', { method:'POST', body:{ student_id:parseInt(val('f-fstudent')), amount:parseFloat(val('f-famount')), status:val('f-fstatus') }});
+    toast('Fee record added!');
+  });
+}
+
+// ── COMPLAINTS ────────────────────────────────────────────────────────────────
+async function complaints() {
+  document.getElementById('add-btn').style.display = '';
+  window.currentCompTab = window.currentCompTab || 'All';
+  const tab = window.currentCompTab;
+  const data = await api('/complaints');
+  const filtered = data.filter(c => tab === 'All' || c.status === tab);
+
+  document.getElementById('content').innerHTML = `
+    <div class="section-tabs">
+      ${['All','Open','In Progress','Resolved'].map(t=>`<button class="section-tab${tab===t?' active':''}" onclick="setCompTab('${t}')">${t}</button>`).join('')}
+    </div>
+    <div class="table-wrap">
+      <div class="table-header"><span class="table-title">Complaints <span style="color:var(--muted);font-weight:400">(${filtered.length})</span></span></div>
+      <table>
+        <thead><tr><th>Student</th><th>Description</th><th>Status</th><th>Date</th><th></th></tr></thead>
+        <tbody>
+          ${filtered.map(c => `<tr>
+            <td>${c.student_name}<br><small style="color:var(--muted)">${c.roll_no}</small></td>
+            <td style="max-width:280px">${c.description}</td>
+            <td>${badge(c.status, { Open:'badge-open','In Progress':'badge-progress', Resolved:'badge-resolved' })}</td>
+            <td style="color:var(--muted)">${new Date(c.created_at).toLocaleDateString()}</td>
+            <td>
+              <select class="form-select" style="padding:5px 8px;font-size:0.7rem;width:130px" onchange="updateComplaint(${c.complaint_id}, this.value)">
+                ${['Open','In Progress','Resolved'].map(s=>`<option${s===c.status?' selected':''}>${s}</option>`).join('')}
+              </select>
+            </td>
+          </tr>`).join('') || '<tr><td colspan="5"><div class="empty"><div class="empty-text">No complaints</div></div></td></tr>'}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function setCompTab(t) { window.currentCompTab = t; complaints(); }
+
+async function updateComplaint(id, status) {
+  await api(`/complaints/${id}`, { method:'PATCH', body:{ status }});
+  toast('Status updated');
+}
+
+async function addComplaintModal() {
+  const students = await api('/students');
+  openModal('File Complaint', `
+    <div class="form-group"><label class="form-label">Student</label>
+      <select id="f-cstudent" class="form-select">
+        ${students.map(s=>`<option value="${s.student_id}">${s.name} (${s.roll_no})</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Description</label>
+      <textarea id="f-cdesc" class="form-textarea" placeholder="Describe the issue…"></textarea>
+    </div>`, async () => {
+    await api('/complaints', { method:'POST', body:{ student_id:parseInt(val('f-cstudent')), description:val('f-cdesc') }});
+    toast('Complaint filed!');
+  });
+}
+
+// ── SEARCH FILTER ─────────────────────────────────────────────────────────────
+function filterTable(input, tbodyId) {
+  const q = input.value.toLowerCase();
+  document.querySelectorAll(`#${tbodyId} tr`).forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+loadPage('dashboard');
+</script>
+</body>
+</html>
